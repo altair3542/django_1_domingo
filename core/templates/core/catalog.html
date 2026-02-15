@@ -1,0 +1,16 @@
+<!-- templates/core/catalog.html -->
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <h1>{{ title }}</h1>
+
+  <p>Esta lista es un placeholder. En la sesion 2 la reemplazamos por datos del ORM.</p>
+
+  <ul>
+    {% for item in items %}
+      <li><strong>{{ item.name }}</strong> <span class="muted">({{ item.tag }})</span></li>
+    {% empty %}
+      <li>No hay elementos.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,0 +1,16 @@
+<!-- templates/core/home.html -->
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+
+  <section class="card">
+    <h2>Checklist rapido</h2>
+    <ul>
+      <li>Ruta '/' funciona</li>
+      <li>Template hereda de base.html</li>
+      <li>CSS carga desde static</li>
+    </ul>
+  </section>
+{% endblock %}
