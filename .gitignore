@@ -1,0 +1,49 @@
+# --- Python / Django ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Django stuff
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Django migrations cache / pycache
+**/migrations/__pycache__/
+
+# --- Virtualenv ---
+.venv/
+venv/
+ENV/
+env/
+.ENV/
+
+# --- OS / Editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Test / Coverage ---
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+
+# --- Build / Packaging ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Node (si llegas a usar frontend tooling) ---
+node_modules/
+
+# --- Misc caches ---
+.cache/
