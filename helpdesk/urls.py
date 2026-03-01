@@ -1,6 +1,11 @@
+# helpdesk/urls.py
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("tickets/", views.ticket_list, name="ticket_list"),
+    path("tickets/", views.TicketListView.as_view(), name="ticket_list"),
+    path("tickets/new/", views.TicketCreateView.as_view(), name="ticket_create"),
+    path("tickets/<int:pk>/", views.TicketDetailView.as_view(), name="ticket_detail"),
+    path("tickets/<int:pk>/edit/", views.TicketUpdateView.as_view(), name="ticket_update"),
+    path("tickets/<int:pk>/close/", views.close_ticket, name="ticket_close"),
 ]

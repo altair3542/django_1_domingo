@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Detalle Ticket{% endblock %}
+{% block content %}
+  <h1>{{ ticket.title }}</h1>
+
+  <ul>
+    <li><b>Cliente:</b> {{ ticket.customer.name }} ({{ ticket.customer.email }})</li>
+    <li><b>Estado:</b> {{ ticket.get_status_display }}</li>
+    <li><b>Prioridad:</b> {{ ticket.get_priority_display }}</li>
+    <li><b>Creado:</b> {{ ticket.created_at }}</li>
+  </ul>
+
+  <p>
+    <a href="{% url 'ticket_update' ticket.pk %}">Editar</a>
+  </p>
+
+  {% if user.is_staff and ticket.status != "closed" %}
+    <form method="post" action="{% url 'ticket_close' ticket.pk %}">
+      {% csrf_token %}
+      <button type="submit">Cerrar ticket</button>
+    </form>
+  {% endif %}
+
+  <p><a href="{% url 'ticket_list' %}">Volver a lista</a></p>
+{% endblock %}

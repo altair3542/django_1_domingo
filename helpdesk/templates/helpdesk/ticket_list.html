@@ -1,26 +1,31 @@
 {% extends "base.html" %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Tickets{% endblock %}
 {% block content %}
-  <h1>{{ title }}</h1>
+  <h1>Tickets</h1>
+
+  <p>
+    <a href="{% url 'ticket_create' %}">Crear ticket</a>
+    |
+    <a href="{% url 'ticket_list' %}?status=open">Abiertos</a>
+    <a href="{% url 'ticket_list' %}?status=in_progress">En progreso</a>
+    <a href="{% url 'ticket_list' %}?status=closed">Cerrados</a>
+  </p>
 
   <table>
     <thead>
-      <tr>
-        <th>Título</th><th>Cliente</th><th>Email</th><th>Estado</th><th>Prioridad</th><th>Creado</th>
-      </tr>
+      <tr><th>Título</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Creado</th></tr>
     </thead>
     <tbody>
       {% for t in tickets %}
         <tr>
-          <td>{{ t.title }}</td>
+          <td><a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a></td>
           <td>{{ t.customer.name }}</td>
-          <td>{{ t.customer.email }}</td>
           <td>{{ t.get_status_display }}</td>
           <td>{{ t.get_priority_display }}</td>
           <td>{{ t.created_at }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="6">No hay tickets.</td></tr>
+        <tr><td colspan="5">No hay tickets.</td></tr>
       {% endfor %}
     </tbody>
   </table>
