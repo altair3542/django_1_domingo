@@ -42,7 +42,13 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3) Ejecutar el servidor
+### 3) Aplicar migraciones
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### 4) Ejecutar el servidor
 ```bash
 python manage.py runserver
 ```
@@ -56,14 +62,17 @@ Abrir:
 ## Rutinas de trabajo “día a día” (lo que harás siempre)
 
 ### Opción A: cada día (normal)
-1) Ir a la carpeta del proyecto  
-2) Activar venv  
-3) Levantar servidor
+1) Ir a la carpeta del proyecto
+2) Activar venv
+3) Aplicar migraciones (si hay cambios en modelos)
+4) Levantar servidor
 
 **macOS / Linux**
 ```bash
 cd /ruta/al/proyecto
 source .venv/bin/activate
+python manage.py makemigrations
+python manage.py migrate
 python manage.py runserver
 ```
 
@@ -71,6 +80,8 @@ python manage.py runserver
 ```powershell
 cd C:\ruta\al\proyecto
 .\.venv\Scripts\Activate.ps1
+python manage.py makemigrations
+python manage.py migrate
 python manage.py runserver
 ```
 
@@ -101,6 +112,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
+python manage.py makemigrations
+python manage.py migrate
 python manage.py runserver
 ```
 
@@ -111,6 +124,8 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install --upgrade pip
 pip install -r requirements.txt
+python manage.py makemigrations
+python manage.py migrate
 python manage.py runserver
 ```
 
@@ -159,6 +174,21 @@ Verifica:
 - `<link rel="stylesheet" href="{% static 'css/app.css' %}">`
 - `STATICFILES_DIRS` configurado
 - DevTools → Network → `/static/css/app.css` devuelve 200
+
+### PowerShell bloquea `Activate.ps1` (Execution Policy)
+Si aparece un error tipo “running scripts is disabled on this system”, haz esto:
+
+1) Cierra la terminal actual.
+2) Abre **PowerShell como Administrador**.
+3) Ejecuta:
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope LocalMachine
+```
+4) Confirma con `Y` y Enter.
+5) Abre una nueva terminal PowerShell normal, vuelve al proyecto y activa:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
 ---
 
