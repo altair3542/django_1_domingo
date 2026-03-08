@@ -13,6 +13,17 @@ class CustomerForm(forms.ModelForm):
 class TicketForm(forms.ModelForm):
     class Meta:
         model = Ticket
+        fields = ["title", "customer", "priority"]
+
+    def clean_title(self):
+        title = self.cleaned_data["title"].strip()
+        if len(title) < 8:
+            raise forms.ValidationError("El título debe tener al menos 8 caracteres.")
+        return title
+
+class TicketStaffForm(forms.ModelForm):
+    class Meta:
+        model = Ticket
         fields = ["title", "customer", "status", "priority"]
 
     def clean_title(self):

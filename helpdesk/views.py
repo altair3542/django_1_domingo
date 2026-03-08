@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 
-from .forms import TicketForm
+from .forms import TicketForm, TicketStaffForm
 from .models import Ticket
 
 class TicketListView(LoginRequiredMixin, ListView):
@@ -25,9 +25,13 @@ class TicketListView(LoginRequiredMixin, ListView):
 
 class TicketCreateView(LoginRequiredMixin, CreateView):
     model = Ticket
-    form_class = TicketForm
     template_name = "helpdesk/ticket_form.html"
     success_url = reverse_lazy("ticket_list")
+
+    def get_form_class(self):
+        if self.request.user.is_staff:
+            return TicketStaffForm
+        return TicketForm
 
     def form_valid(self, form):
         messages.success(self.request, "Ticket creado correctamente.")
