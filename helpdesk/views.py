@@ -75,6 +75,7 @@ from django.views.generic import ListView, DetailView
 
 from .models import Tag, Ticket
 
+
 class TicketListView(ListView):
     model = Ticket
     template_name = "helpdesk/ticket_list.html"
@@ -101,11 +102,11 @@ class TicketListView(ListView):
         if tag:
             queryset = queryset.filter(tags__slug=tag)
 
-        return queryset.distinct
-super
+        return queryset.distinct()
+
     def get_context_data(self, **kwargs):
-        context = ().get_context_data(**kwargs)
-        context["tags"] = tag.objects.all()
+        context = super().get_context_data(**kwargs)
+        context["tags"] = Tag.objects.all()
         context["selected_status"] = self.request.GET.get("status", "")
         context["selected_priority"] = self.request.GET.get("priority", "")
         context["selected_tag"] = self.request.GET.get("tag", "")
@@ -116,5 +117,18 @@ super
 
     def _get_querystring_without_page(self):
         params = self.request.GET.copy()
-        params.pop("page", none)
-        return params.urlencode
+        params.pop("page", None)
+        return params.urlencode()
+
+
+class TicketDetailView(DetailView):
+    model = Ticket
+    template_name = "helpdesk/ticket_detail.html"
+    context_object_name = "ticket"
+
+    def get_queryset(self):
+        return (
+            Ticket.objects.with_related()
+            .with_comment_count()
+            .prefetch_related("comments")
+        )

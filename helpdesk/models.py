@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.core.validators import MinLengthValidator
 
 # Create your models here.
@@ -29,6 +29,17 @@ class Tag(models.Model):
 
     class Meta:
         ordering = ["name"]
+
+
+class TicketQuerySet(models.QuerySet):
+    def with_related(self):
+        return self.select_related("customer").prefetch_related("tags")
+
+    def with_comment_count(self):
+        return self.annotate(comment_count=Count("comments"))
+
+    def ordered(self):
+        return self.order_by("-created_at", "-id")
 
 class Ticket(TimeStampedModel):
     class Status(models.TextChoices):
@@ -71,6 +82,8 @@ class Ticket(TimeStampedModel):
         related_name="tickets",
         blank=True
     )
+
+    objects = TicketQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at", "-id"]

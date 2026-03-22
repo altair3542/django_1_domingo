@@ -1,25 +1,49 @@
-{% extends "base.html" %}
-{% block title %}Detalle Ticket{% endblock %}
-{% block content %}
-  <h1>{{ ticket.title }}</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ ticket.title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        .comment { border-top: 1px solid #ddd; padding: 1rem 0; }
+        .meta { color: #666; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+    <p><a href="{% url 'helpdesk:ticket_list' %}">← Volver al listado</a></p>
 
-  <ul>
-    <li><b>Cliente:</b> {{ ticket.customer.name }} ({{ ticket.customer.email }})</li>
-    <li><b>Estado:</b> {{ ticket.get_status_display }}</li>
-    <li><b>Prioridad:</b> {{ ticket.get_priority_display }}</li>
-    <li><b>Creado:</b> {{ ticket.created_at }}</li>
-  </ul>
+    <h1>{{ ticket.title }}</h1>
 
-  <p>
-    <a href="{% url 'ticket_update' ticket.pk %}">Editar</a>
-  </p>
+    <p class="meta">
+        Cliente: {{ ticket.customer.name }} |
+        Estado: {{ ticket.get_status_display }} |
+        Prioridad: {{ ticket.get_priority_display }} |
+        Comentarios: {{ ticket.comment_count }}
+    </p>
 
-  {% if user.is_staff and ticket.status != "closed" %}
-    <form method="post" action="{% url 'ticket_close' ticket.pk %}">
-      {% csrf_token %}
-      <button type="submit">Cerrar ticket</button>
-    </form>
-  {% endif %}
+    <p>{{ ticket.description|default:"Sin descripción." }}</p>
 
-  <p><a href="{% url 'ticket_list' %}">Volver a lista</a></p>
-{% endblock %}
+    <p>
+        Tags:
+        {% for tag in ticket.tags.all %}
+            <span>{{ tag.name }}</span>{% if not forloop.last %}, {% endif %}
+        {% empty %}
+            <span>Sin tags</span>
+        {% endfor %}
+    </p>
+
+    <h2>Comentarios</h2>
+    {% for comment in ticket.comments.all %}
+        <div class="comment">
+            <strong>{{ comment.author_name }}</strong>
+            <p class="meta">
+                {{ comment.created_at }} |
+                {% if comment.is_internal %}Interno{% else %}Público{% endif %}
+            </p>
+            <p>{{ comment.body }}</p>
+        </div>
+    {% empty %}
+        <p>Este ticket aún no tiene comentarios.</p>
+    {% endfor %}
+</body>
+</html>
