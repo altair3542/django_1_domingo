@@ -1,49 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ ticket.title }}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 2rem; }
-        .comment { border-top: 1px solid #ddd; padding: 1rem 0; }
-        .meta { color: #666; font-size: 0.95rem; }
-    </style>
-</head>
-<body>
-    <p><a href="{% url 'helpdesk:ticket_list' %}">← Volver al listado</a></p>
+{% extends "base.html" %}
+{% block title %}Detalle Ticket{% endblock %}
+{% block content %}
+  <h1>{{ ticket.title }}</h1>
 
-    <h1>{{ ticket.title }}</h1>
+  <ul>
+    <li><b>Cliente:</b> {{ ticket.customer.name }} ({{ ticket.customer.email }})</li>
+    <li><b>Estado:</b> {{ ticket.get_status_display }}</li>
+    <li><b>Prioridad:</b> {{ ticket.get_priority_display }}</li>
+    <li><b>Tags:</b>
+      {% for tag in ticket.tags.all %}
+        {{ tag.name }}{% if not forloop.last %}, {% endif %}
+      {% empty %}
+        —
+      {% endfor %}
+    </li>
+    <li><b>Creado:</b> {{ ticket.created_at }}</li>
+  </ul>
 
-    <p class="meta">
-        Cliente: {{ ticket.customer.name }} |
-        Estado: {{ ticket.get_status_display }} |
-        Prioridad: {{ ticket.get_priority_display }} |
-        Comentarios: {{ ticket.comment_count }}
-    </p>
-
-    <p>{{ ticket.description|default:"Sin descripción." }}</p>
-
-    <p>
-        Tags:
-        {% for tag in ticket.tags.all %}
-            <span>{{ tag.name }}</span>{% if not forloop.last %}, {% endif %}
-        {% empty %}
-            <span>Sin tags</span>
-        {% endfor %}
-    </p>
-
-    <h2>Comentarios</h2>
+  <h2>Comentarios</h2>
+  <ul>
     {% for comment in ticket.comments.all %}
-        <div class="comment">
-            <strong>{{ comment.author_name }}</strong>
-            <p class="meta">
-                {{ comment.created_at }} |
-                {% if comment.is_internal %}Interno{% else %}Público{% endif %}
-            </p>
-            <p>{{ comment.body }}</p>
-        </div>
+      <li>
+        <b>{{ comment.author_name }}</b> — {{ comment.created_at|date:"Y-m-d H:i" }}
+        {% if comment.is_internal %}(interno){% endif %}
+        <br>
+        {{ comment.body }}
+      </li>
     {% empty %}
-        <p>Este ticket aún no tiene comentarios.</p>
+      <li>Este ticket todavía no tiene comentarios.</li>
     {% endfor %}
-</body>
-</html>
+  </ul>
+
+  <p>
+    <a href="{% url 'ticket_update' ticket.pk %}">Editar</a>
+  </p>
+
+  {% if can_close_ticket %}
+    <form method="post" action="{% url 'ticket_close' ticket.pk %}">
+      {% csrf_token %}
+      <button type="submit">Cerrar ticket</button>
+    </form>
+  {% endif %}
+
+  <p><a href="{% url 'ticket_list' %}">Volver a lista</a></p>
+{% endblock %}

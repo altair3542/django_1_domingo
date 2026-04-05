@@ -1,134 +1,140 @@
-# from django.contrib import messages
-# from django.contrib.auth.decorators import login_required, user_passes_test
-# from django.contrib.auth.mixins import LoginRequiredMixin
-# from django.http import HttpResponseForbidden
-# from django.shortcuts import get_object_or_404, redirect
-# from django.urls import reverse_lazy
-# from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from urllib.parse import urlencode
 
-# from .forms import TicketForm, TicketStaffForm
-# from .models import Ticket
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.http import HttpResponseNotAllowed
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
+from django.views import View
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-# class TicketListView(LoginRequiredMixin, ListView):
-#     model = Ticket
-#     template_name = "helpdesk/ticket_list.html"
-#     context_object_name = "tickets"
-#     paginate_by = 20
-
-#     def get_queryset(self):
-#         qs = Ticket.objects.select_related("customer").order_by("-created_at")
-#         status = self.request.GET.get("status")
-#         if status:
-#             qs = qs.filter(status=status)
-#         return qs
+from .forms import TicketForm, TicketStaffForm
+from .models import Comment, Tag, Ticket
 
 
-# class TicketCreateView(LoginRequiredMixin, CreateView):
-#     model = Ticket
-#     template_name = "helpdesk/ticket_form.html"
-#     success_url = reverse_lazy("ticket_list")
+class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_staff
 
-#     def get_form_class(self):
-#         if self.request.user.is_staff:
-#             return TicketStaffForm
-#         return TicketForm
-
-#     def form_valid(self, form):
-#         messages.success(self.request, "Ticket creado correctamente.")
-#         return super().form_valid(form)
+    def handle_no_permission(self):
+        messages.error(self.request, "No tienes permisos para realizar esta acción.")
+        return redirect("ticket_list")
 
 
-# class TicketUpdateView(LoginRequiredMixin, UpdateView):
-#     model = Ticket
-#     form_class = TicketForm
-#     template_name = "helpdesk/ticket_form.html"
-
-#     def get_success_url(self):
-#         messages.success(self.request, "Ticket actualizado.")
-#         return reverse_lazy("ticket_detail", kwargs={"pk": self.object.pk})
-
-
-# class TicketDetailView(LoginRequiredMixin, DetailView):
-#     model = Ticket
-#     template_name = "helpdesk/ticket_detail.html"
-#     context_object_name = "ticket"
-
-
-# def is_staff(user):
-#     return user.is_staff
-
-
-# @login_required
-# @user_passes_test(is_staff)
-# def close_ticket(request, pk: int):
-#     if request.method != "POST":
-#         return HttpResponseForbidden("Método no permitido")
-
-#     ticket = get_object_or_404(Ticket, pk=pk)
-#     ticket.status = Ticket.Status.CLOSED
-#     ticket.save(update_fields=["status"])
-#     messages.success(request, "Ticket cerrado.")
-#     return redirect("ticket_detail", pk=ticket.pk)
-
-from django.core.paginator import Paginator
-from django.views.generic import ListView, DetailView
-
-from .models import Tag, Ticket
-
-
-class TicketListView(ListView):
+class TicketListView(LoginRequiredMixin, ListView):
     model = Ticket
     template_name = "helpdesk/ticket_list.html"
     context_object_name = "tickets"
     paginate_by = 10
 
     def get_queryset(self):
-        queryset = (
-            Ticket.objects.with_related()
+        status = self.request.GET.get("status") or None
+        priority = self.request.GET.get("priority") or None
+        tag = self.request.GET.get("tag") or None
+
+        return (
+            Ticket.objects.with_related_for_listing()
             .with_comment_count()
-            .ordered()
+            .filter_by_params(status=status, priority=priority, tag=tag)
+            .ordered_for_listing()
         )
-
-        status = self.request.GET.get("status")
-        priority = self.request.GET.get("priority")
-        tag = self.request.GET.get("tag")
-
-        if status:
-            queryset = queryset.filter(status=status)
-
-        if priority:
-            queryset = queryset.filter(priority=priority)
-
-        if tag:
-            queryset = queryset.filter(tags__slug=tag)
-
-        return queryset.distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["tags"] = Tag.objects.all()
-        context["selected_status"] = self.request.GET.get("status", "")
-        context["selected_priority"] = self.request.GET.get("priority", "")
-        context["selected_tag"] = self.request.GET.get("tag", "")
-        context["status_choices"] = Ticket.Status.choices
-        context["priority_choices"] = Ticket.Priority.choices
-        context["querystring"] = self._get_querystring_without_page()
-        return context
+        current_status = self.request.GET.get("status", "")
+        current_priority = self.request.GET.get("priority", "")
+        current_tag = self.request.GET.get("tag", "")
 
-    def _get_querystring_without_page(self):
         params = self.request.GET.copy()
         params.pop("page", None)
-        return params.urlencode()
+
+        context.update(
+            {
+                "status_choices": Ticket.Status.choices,
+                "priority_choices": Ticket.Priority.choices,
+                "available_tags": Tag.objects.all(),
+                "current_status": current_status,
+                "current_priority": current_priority,
+                "current_tag": current_tag,
+                "page_querystring": urlencode(params, doseq=True),
+            }
+        )
+        return context
 
 
-class TicketDetailView(DetailView):
+class TicketCreateView(LoginRequiredMixin, CreateView):
+    model = Ticket
+    template_name = "helpdesk/ticket_form.html"
+    success_url = reverse_lazy("ticket_list")
+
+    def get_form_class(self):
+        if self.request.user.is_staff:
+            return TicketStaffForm
+        return TicketForm
+
+    def form_valid(self, form):
+        messages.success(self.request, "Ticket creado correctamente.")
+        return super().form_valid(form)
+
+
+class TicketUpdateView(LoginRequiredMixin, UpdateView):
+    model = Ticket
+    template_name = "helpdesk/ticket_form.html"
+
+    def get_form_class(self):
+        if self.request.user.is_staff:
+            return TicketStaffForm
+        return TicketForm
+
+    def form_valid(self, form):
+        messages.success(self.request, "Ticket actualizado correctamente.")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("ticket_detail", kwargs={"pk": self.object.pk})
+
+
+class TicketDetailView(LoginRequiredMixin, DetailView):
     model = Ticket
     template_name = "helpdesk/ticket_detail.html"
     context_object_name = "ticket"
 
     def get_queryset(self):
-        return (
-            Ticket.objects.with_related()
-            .with_comment_count()
-            .prefetch_related("comments")
+        return Ticket.objects.select_related("customer").prefetch_related("tags", "comments")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["can_close_ticket"] = (
+            self.request.user.is_staff and self.object.status != Ticket.Status.CLOSED
         )
+        return context
+
+
+class TicketCloseView(StaffRequiredMixin, View):
+    """
+    Acción sensible del dominio: cerrar ticket solo por POST y solo para staff.
+    Además deja evidencia en Comment para trazabilidad operativa.
+    """
+
+    def post(self, request, pk):
+        ticket = get_object_or_404(Ticket, pk=pk)
+
+        if ticket.status == Ticket.Status.CLOSED:
+            messages.info(request, "El ticket ya estaba cerrado.")
+            return redirect("ticket_detail", pk=ticket.pk)
+
+        ticket.status = Ticket.Status.CLOSED
+        ticket.save(update_fields=["status"])
+
+        Comment.objects.create(
+            ticket=ticket,
+            author_name=request.user.get_username() or "staff",
+            body="Ticket cerrado por staff desde la acción dedicada de cierre.",
+            is_internal=True,
+        )
+
+        messages.success(request, "Ticket cerrado correctamente.")
+        return redirect("ticket_detail", pk=ticket.pk)
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponseNotAllowed(["POST"])

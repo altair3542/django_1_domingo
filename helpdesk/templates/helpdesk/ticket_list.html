@@ -1,122 +1,99 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Tickets</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 2rem; }
-        .filters { margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #ddd; }
-        .ticket-card { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; }
-        .pagination a, .pagination span {
-            display: inline-block;
-            margin-right: .5rem;
-            padding: .4rem .7rem;
-            border: 1px solid #ccc;
-            text-decoration: none;
-        }
-        .pagination .current {
-            font-weight: bold;
-            background: #f3f3f3;
-        }
-        .meta { color: #555; font-size: 0.95rem; }
-    </style>
-</head>
-<body>
-    <h1>Listado de tickets</h1>
+{% extends "base.html" %}
+{% block title %}Tickets{% endblock %}
+{% block content %}
+  <h1>Tickets</h1>
 
-    <form method="get" class="filters">
-        <label for="status">Estado:</label>
-        <select name="status" id="status">
-            <option value="">Todos</option>
-            {% for value, label in status_choices %}
-                <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>
-                    {{ label }}
-                </option>
+  <p>
+    <a href="{% url 'ticket_create' %}">Crear ticket</a>
+  </p>
+
+  <form method="get">
+    <fieldset>
+      <legend>Filtros</legend>
+
+      <label for="status">Estado</label>
+      <select name="status" id="status">
+        <option value="">Todos</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="priority">Prioridad</label>
+      <select name="priority" id="priority">
+        <option value="">Todas</option>
+        {% for value, label in priority_choices %}
+          <option value="{{ value }}" {% if current_priority == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="tag">Tag</label>
+      <select name="tag" id="tag">
+        <option value="">Todos</option>
+        {% for tag in available_tags %}
+          <option value="{{ tag.slug }}" {% if current_tag == tag.slug %}selected{% endif %}>{{ tag.name }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">Aplicar filtros</button>
+      <a href="{% url 'ticket_list' %}">Limpiar</a>
+    </fieldset>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Título</th>
+        <th>Cliente</th>
+        <th>Estado</th>
+        <th>Prioridad</th>
+        <th>Tags</th>
+        <th>Comentarios</th>
+        <th>Creado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+        <tr>
+          <td><a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a></td>
+          <td>{{ t.customer.name }}</td>
+          <td>{{ t.get_status_display }}</td>
+          <td>{{ t.get_priority_display }}</td>
+          <td>
+            {% for tag in t.tags.all %}
+              <span>{{ tag.name }}</span>{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              <span>—</span>
             {% endfor %}
-        </select>
+          </td>
+          <td>{{ t.comment_count }}</td>
+          <td>{{ t.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">No hay tickets para los filtros seleccionados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-        <label for="priority">Prioridad:</label>
-        <select name="priority" id="priority">
-            <option value="">Todas</option>
-            {% for value, label in priority_choices %}
-                <option value="{{ value }}" {% if selected_priority == value|stringformat:"s" %}selected{% endif %}>
-                    {{ label }}
-                </option>
-            {% endfor %}
-        </select>
+  {% if is_paginated %}
+    <nav aria-label="Paginación de tickets">
+      <p>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</p>
 
-        <label for="tag">Tag:</label>
-        <select name="tag" id="tag">
-            <option value="">Todos</option>
-            {% for tag in tags %}
-                <option value="{{ tag.slug }}" {% if selected_tag == tag.slug %}selected{% endif %}>
-                    {{ tag.name }}
-                </option>
-            {% endfor %}
-        </select>
+      {% if page_obj.has_previous %}
+        <a href="{% url 'ticket_list' %}{% if page_querystring %}?{{ page_querystring }}&page={{ page_obj.previous_page_number }}{% else %}?page={{ page_obj.previous_page_number }}{% endif %}">Anterior</a>
+      {% endif %}
 
-        <button type="submit">Filtrar</button>
-        <a href="{% url 'helpdesk:ticket_list' %}">Limpiar</a>
-    </form>
+      {% for page_number in page_obj.paginator.page_range %}
+        {% if page_number == page_obj.number %}
+          <strong>[{{ page_number }}]</strong>
+        {% else %}
+          <a href="{% url 'ticket_list' %}{% if page_querystring %}?{{ page_querystring }}&page={{ page_number }}{% else %}?page={{ page_number }}{% endif %}">{{ page_number }}</a>
+        {% endif %}
+      {% endfor %}
 
-    {% for ticket in tickets %}
-        <div class="ticket-card">
-            <h2>
-                <a href="{% url 'helpdesk:ticket_detail' ticket.pk %}">
-                    {{ ticket.title }}
-                </a>
-            </h2>
-
-            <p class="meta">
-                Cliente: {{ ticket.customer.name }} |
-                Estado: {{ ticket.get_status_display }} |
-                Prioridad: {{ ticket.get_priority_display }} |
-                Comentarios: {{ ticket.comment_count }}
-            </p>
-
-            <p>{{ ticket.description|default:"Sin descripción." }}</p>
-
-            <p>
-                Tags:
-                {% for tag in ticket.tags.all %}
-                    <span>{{ tag.name }}</span>{% if not forloop.last %}, {% endif %}
-                {% empty %}
-                    <span>Sin tags</span>
-                {% endfor %}
-            </p>
-        </div>
-    {% empty %}
-        <p>No hay tickets para los filtros seleccionados.</p>
-    {% endfor %}
-
-    {% if is_paginated %}
-        <div class="pagination">
-            {% if page_obj.has_previous %}
-                <a href="?page=1{% if querystring %}&{{ querystring }}{% endif %}">Primera</a>
-                <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">
-                    Anterior
-                </a>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-                {% if num == page_obj.number %}
-                    <span class="current">{{ num }}</span>
-                {% else %}
-                    <a href="?page={{ num }}{% if querystring %}&{{ querystring }}{% endif %}">
-                        {{ num }}
-                    </a>
-                {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">
-                    Siguiente
-                </a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% if querystring %}&{{ querystring }}{% endif %}">
-                    Última
-                </a>
-            {% endif %}
-        </div>
-    {% endif %}
-</body>
-</html>
+      {% if page_obj.has_next %}
+        <a href="{% url 'ticket_list' %}{% if page_querystring %}?{{ page_querystring }}&page={{ page_obj.next_page_number }}{% else %}?page={{ page_obj.next_page_number }}{% endif %}">Siguiente</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

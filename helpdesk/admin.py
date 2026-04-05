@@ -1,10 +1,11 @@
 from django.contrib import admin
 from .models import Comment, Customer, Tag, Ticket
-# Register your models here.
+
+
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "company", "created_at")
-    search_fields = ("name", "email", "company")
+    list_display = ("name", "email")
+    search_fields = ("name", "email")
     ordering = ("name",)
 
 
@@ -20,31 +21,22 @@ class CommentInline(admin.TabularInline):
     extra = 1
     fields = ("author_name", "is_internal", "body", "created_at")
     readonly_fields = ("created_at",)
-    show_change_link = True
 
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "title",
-        "customer",
-        "status",
-        "priority",
-        "created_at",
-    )
-    list_filter = ("status", "priority", "tags")
+    list_display = ("title", "customer", "status", "priority", "created_at")
     search_fields = ("title", "customer__name", "customer__email")
-    autocomplete_fields = ("customer",)
+    list_filter = ("status", "priority", "tags")
     list_select_related = ("customer",)
+    autocomplete_fields = ("customer",)
     filter_horizontal = ("tags",)
     inlines = [CommentInline]
-    ordering = ("-created_at", "-id")
 
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     list_display = ("ticket", "author_name", "is_internal", "created_at")
-    list_filter = ("is_internal", "created_at")
+    list_filter = ("is_internal",)
     search_fields = ("ticket__title", "author_name", "body")
     autocomplete_fields = ("ticket",)
